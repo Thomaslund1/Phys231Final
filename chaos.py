@@ -26,7 +26,7 @@ tInt = 100000
 t = np.linspace(tStart, tEnd , tInt)
 
 #Duffing Eq.
-def duffing(k, omega, gamma, alpha, beta, C = 0.5): 
+def duffing(k, omega, gamma, alpha, beta, C = 0.15): 
     
     x = []
     def dx_dt(x, t):
@@ -221,3 +221,4 @@ path = os.getcwd() + "/test.gif"
 print(path)
 
 ani.save('/home/thomas/Desktop/Chaos/test2.gif', writer = 'pillow') # Change the title so you can find it
+# %%

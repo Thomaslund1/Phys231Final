@@ -1,11 +1,8 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
 Created on Tue Feb 20 15:19:15 2024
 
 @author: benjmainansbacher
 """
-#%% Imports
 
 import csv
 import numpy as np
@@ -23,21 +20,17 @@ from matplotlib.animation import FuncAnimation
 import os
 
 #%% ODE 
-
-
-
-
 tStart = 0
 tEnd = 10000
-tInt = 1000000
+tInt = 100000
 t = np.linspace(tStart, tEnd , tInt)
 
 #Duffing Eq.
-def duffing(k, omega, gamma, alpha, beta): 
+def duffing(k, omega, gamma, alpha, beta, C = 0.5): 
     
     x = []
     def dx_dt(x, t):
-        return [x[1], -beta*x[0] - k * x[1] - alpha*x[0]**3 + gamma * np.cos(omega*t)]
+        return [x[1], -beta*x[0] - k * x[1] - alpha*x[0]**3 + gamma * np.cos(omega*t) + C]
 
     #Solve ODE
     xs = odeint(dx_dt, [1,0], t)
@@ -61,16 +54,39 @@ def zero_crossings_time_diff(xs):
     return timeDiff
 
 
-sol = duffing(k=0.3, omega=3.1, gamma=1.0, alpha=1.0, beta=-1.0)
-x = sol[500000:, 0]
-p = sol[500000:, 1]
+def update_graph(frames): # Replace the variable you care about with W[frames]
+    eq = duffing(k=W[frames], 
+                 omega=1.2, 
+                 gamma=1.0, 
+                 alpha=1.0, 
+                 beta=-1.0)
+    
+    x = eq[:, 0]
+    x_dot = eq[:, 1]
+    
+    ax[0].cla()
+    
+    ax[0].plot(x, x_dot, linewidth=0.7)
+    ax[0].set_title(np.round(W[frames], 4))
+    ax[0].set_xlabel('x')
+    ax[0].set_ylabel('p')
+    ax[0].set_xlim(-2, 2) #Change the bounds to match your graph bounds
+    ax[0].set_ylim(-2, 2)
+    
+    ax[1].cla()
+    
+    newdata = zero_crossings_time_diff(duffing(k=W[frames], omega=1.2, gamma=1.0, alpha=1.0, beta=-1.0))
+    symbols1, probs = ansbacher_ordinal_distribution(newdata, dx=3, return_missing=True, tie_precision=8)[:2]
+    pops = probs
+    ax[1].bar(['012','021','102','120','201','210'], pops, width=0.3)
+    ax[1].set_ylim(0,0.5)
+    ax[1].set_title('Word Populations')
+    ax[1].set_xlabel('Word')
+    ax[1].set_ylabel('Frequency')
 
-plt.plot(x, p)
-plt.title('duffing(k=0.3, omega=2.8, gamma=1.0, alpha=1.0, beta=-1.0')
-plt.xlabel('X')
-plt.ylabel('P')
+    
+    plt.close(fig)
 
-#%% Ordinal Distribution
 
 def ansbacher_ordinal_distribution(data, dx=3, dy=1, taux=1, tauy=1, return_missing=False, tie_precision=None):
 
@@ -113,11 +129,20 @@ def ansbacher_ordinal_distribution(data, dx=3, dy=1, taux=1, tauy=1, return_miss
     
     return all_symbols, all_probs, partitions, symbols, symbols_count
 
+sol = duffing(k=0.3, omega=3.1, gamma=1.0, alpha=1.0, beta=-1.0)
+x = sol[550:, 0]
+p = sol[550:, 1]
+
+plt.plot(x, p)
+plt.title('duffing(k=0.3, omega=2.8, gamma=1.0, alpha=1.0, beta=-1.0')
+plt.xlabel('X')
+plt.ylabel('P')
+
+
 symbols, probs, partitions, osymbols, symbols_count = ansbacher_ordinal_distribution(zero_crossings_time_diff(duffing(0,0,0,0,1)), return_missing=True, dx=3, tie_precision=8)
 print(symbols, probs, partitions, osymbols, symbols_count)
 #print(-sum(probs*np.log(probs))/np.log(6))
 
-#%% PE
 p012 = []
 p021 = []
 p102 = []
@@ -151,9 +176,7 @@ for w_ in w:
         summation += (-1*(probs[i]*logprobs)/np.log(6))
     entropy += [summation]
     
-#%% PE
-   
-#%% Plotting Individual Word Populations
+# Plotting Individual Word Populations
 plt.rcParams.update({'font.size': 12})
 plt.rcParams["figure.figsize"] = [8, 6]
 plt.rcParams["figure.autolayout"] = True
@@ -174,7 +197,7 @@ ax.set_title(r'Word Populations & PE vs. $\omega$')
 ax.set_xlabel('$\omega$')
 ax.set_ylabel('Population Size/Entropy')
 
-#%% Animation 
+# Animation 
 
 plt.rcParams.update({'font.size': 12})
 plt.rcParams["figure.figsize"] = [8, 6]
@@ -185,40 +208,6 @@ num_frames = 5
 W = np.linspace(0.5, 0.65, 100) # Put the range for your variable
 
 
-def update_graph(frames): # Replace the variable you care about with W[frames]
-    eq = duffing(k=W[frames], 
-                 omega=1.2, 
-                 gamma=1.0, 
-                 alpha=1.0, 
-                 beta=-1.0)
-    
-    x = eq[500000:, 0]
-    x_dot = eq[500000:, 1]
-    
-    ax[0].cla()
-    
-    ax[0].plot(x, x_dot, linewidth=0.7)
-    ax[0].set_title(np.round(W[frames], 4))
-    ax[0].set_xlabel('x')
-    ax[0].set_ylabel('p')
-    ax[0].set_xlim(-2, 2) #Change the bounds to match your graph bounds
-    ax[0].set_ylim(-2, 2)
-    
-    ax[1].cla()
-    
-    newdata = zero_crossings_time_diff(duffing(k=W[frames], omega=1.2, gamma=1.0, alpha=1.0, beta=-1.0))
-    symbols1, probs = ansbacher_ordinal_distribution(newdata, dx=3, return_missing=True, tie_precision=8)[:2]
-    pops = probs
-    ax[1].bar(['012','021','102','120','201','210'], pops, width=0.3)
-    ax[1].set_ylim(0,0.5)
-    ax[1].set_title('Word Populations')
-    ax[1].set_xlabel('Word')
-    ax[1].set_ylabel('Frequency')
-
-    
-    plt.close(fig)
-    
-    
 fig, ax = plt.subplots(nrows = 1, ncols=2, figsize=(15,8))
     
 ani = FuncAnimation(
@@ -231,6 +220,4 @@ path = os.getcwd() + "/test.gif"
 
 print(path)
 
-os.exit()
-
-ani.save(path, writer = 'pillow') # Change the title so you can find it
+ani.save('/home/thomas/Desktop/Chaos/test2.gif', writer = 'pillow') # Change the title so you can find it

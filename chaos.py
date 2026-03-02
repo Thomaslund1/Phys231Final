@@ -3,7 +3,7 @@ Created on Tue Feb 20 15:19:15 2024
 
 @author: benjmainansbacher
 """
-
+import diffrax
 import csv
 import numpy as np
 from scipy.integrate import odeint
@@ -198,7 +198,6 @@ ax.set_xlabel('$\omega$')
 ax.set_ylabel('Population Size/Entropy')
 
 # Animation 
-
 plt.rcParams.update({'font.size': 12})
 plt.rcParams["figure.figsize"] = [8, 6]
 plt.rcParams["figure.autolayout"] = True

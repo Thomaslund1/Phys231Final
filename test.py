@@ -72,6 +72,22 @@ def solve_single(value):
 batched_solve = jax.vmap(solve_single)
 solutions = batched_solve(values)[:,1000:,] #throw away first 1000 points to focus on steady state operation
 
+
+theta_values = jnp.linspace(0, 2*T, 50)
+
+ts_array = ts[1000:]
+
+def get_indices(theta):
+    poincare_times = jnp.arange(ts_array[0], ts_array[-1], T) + theta
+    return jnp.searchsorted(ts_array, poincare_times)
+
+theta_indices = [get_indices(theta) for theta in theta_values]
+
+def get_poincare(theta):
+    poincare_times = jnp.arange(ts_array[0], ts_array[-1], T) + theta
+    indices = jnp.searchsorted(ts_array, poincare_times)
+    return indices
+
 #matplotlib junk
 fig, (ax_phase, ax_poincare) = plt.subplots(1, 2, figsize=(12,6))
 phase_line, = ax_phase.plot([], [], lw=0.5)
@@ -136,32 +152,44 @@ ani.save("duffing_animationVarC9t9.mp4", writer="ffmpeg", fps=10)
 import numpy as np
 import pyvista as pv
 
-# Stack your data (same as before)
-poincare_data = []
+xs = []
+params = []
+thetas = []
 
-for i, value in enumerate(values):
-    trajectory = solutions[i]
-    poincare = trajectory[poincare_indices][100:]
-    poincare_data.append(
-        np.column_stack(
-            (poincare[:, 0], poincare[:, 1], np.full(poincare.shape[0], value))
-        )
-    )
+for theta, indices in zip(theta_values, theta_indices):
+    for i, value in enumerate(values):
 
-points = np.vstack(poincare_data)
+        trajectory = solutions[i]
+        poincare = trajectory[indices][100:]
 
-# Create PyVista point cloud
+        xvals = poincare[:, 0]
+
+        xs.append(xvals)
+        params.append(jnp.full_like(xvals, value))
+        thetas.append(jnp.full_like(xvals, theta))
+
+# Convert to numpy arrays
+xs = np.concatenate(xs)
+params = np.concatenate(params)
+thetas = np.concatenate(thetas)
+
+# PyVista expects points as (N,3)
+points = np.column_stack([params, thetas, xs])
+
+# Create point cloud
 cloud = pv.PolyData(points)
+
+# Attach scalar for coloring
+cloud["xvals"] = xs
 
 plotter = pv.Plotter()
 plotter.add_points(
     cloud,
-    color="black",
-    point_size=3,
-    render_points_as_spheres=False
+    scalars="xvals",
+    cmap="plasma",
+    point_size=2,
+    render_points_as_spheres=True
 )
 
-plotter.add_axes()
 plotter.show_grid()
-
 plotter.show()
